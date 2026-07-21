@@ -191,3 +191,10 @@ Temporary Items
 # iCloud generated files
 *.icloud
 
+#--------------------------------------------------#
+# Project: Claude Code telemetry pipeline          #
+#--------------------------------------------------#
+# Non-secret env rendered by `tofu apply` (reproducible from state).
+# config.alloy and tofu/op.env are committed; only this generated file is ignored.
+alloy/op.env
+

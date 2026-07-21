@@ -1,0 +1,42 @@
+// Committed, static Alloy config. Grafana Cloud coordinates come from the environment,
+// injected at launch by `op run --env-file alloy/op.env` — the write token is a 1Password
+// reference resolved in-memory, never on disk.
+//
+// Pipeline: Claude Code --OTLP--> here --OTLP/HTTP--> Grafana Cloud (Mimir/Loki/Tempo).
+
+otelcol.receiver.otlp "claude_code" {
+  // Loopback only — Claude Code exports to localhost; nothing off-box hits this.
+  grpc {
+    endpoint = "127.0.0.1:4317"
+  }
+  http {
+    endpoint = "127.0.0.1:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    logs    = [otelcol.exporter.otlphttp.grafana_cloud.input]
+    traces  = [otelcol.exporter.otlphttp.grafana_cloud.input]
+  }
+}
+
+otelcol.auth.basic "grafana_cloud" {
+  username = sys.env("GRAFANA_CLOUD_INSTANCE_ID")
+  password = sys.env("GRAFANA_CLOUD_OTLP_TOKEN")
+}
+
+otelcol.exporter.otlphttp "grafana_cloud" {
+  client {
+    // Base OTLP URL; the exporter appends /v1/metrics, /v1/logs, /v1/traces.
+    endpoint = sys.env("GRAFANA_CLOUD_OTLP_ENDPOINT")
+    auth     = otelcol.auth.basic.grafana_cloud.handler
+  }
+}
