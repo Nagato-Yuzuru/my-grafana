@@ -82,8 +82,17 @@ jq -s '.[0] * .[1]' ~/.claude/settings.json claude/settings.telemetry.json > /tm
 `op run` injects the token from 1Password at launch — nothing on disk:
 
 ```bash
-just alloy         # op run --env-file alloy/op.env -- alloy run alloy/config.alloy
+just alloy         # foreground: op run --env-file alloy/op.env -- alloy run alloy/config.alloy
 ```
+
+Want it supervised and out of the way? `just alloy-svc` loads the same `op run … alloy run`
+command as a **launchd** agent in your GUI session: Touch ID at launch, `KeepAlive` restarts
+it if it crashes, and it's bootstrapped from a non-registered path (`alloy/alloy.launchd.plist`,
+generated + gitignored) so it does **not** auto-start next login. It runs until
+`just alloy-svc-stop` or logout/shutdown; check `just alloy-svc-status`, tail `alloy/alloy.log`.
+Because every (re)launch runs `op run`, each start needs a Touch ID approval — that's the cost
+of keeping the token off disk. If it doesn't prompt or dies immediately, unlock 1Password (or
+run `just alloy` once in the foreground to confirm auth), then retry.
 
 Install differs per platform:
 
@@ -93,7 +102,9 @@ Install differs per platform:
 
 Running Alloy under a boot-time service manager (brew services / systemd) would need a
 1Password **service account** token available unattended — out of scope for the
-interactive/at-work model here. Start `just alloy` when you begin work.
+interactive/at-work model here (a *boot-time* daemon can't do the Touch ID unlock). The
+launchd agent above is the supervised middle ground: it lives in your logged-in GUI session,
+still gated by Touch ID. Start `just alloy` (or `just alloy-svc`) when you begin work.
 
 ## Rotate the token
 
