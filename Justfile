@@ -4,7 +4,7 @@
 
 # 1Password coordinates for the Alloy write token. Keep in sync with tofu variable
 # onepassword_token_ref (= op://{{op_vault}}/{{op_item}}/{{op_field}}).
-set shell := ["bash", "-euo", "pipefail"]
+set shell := ["bash", "-euo", "pipefail", "-c"]
 
 op_vault := "Homelab"
 op_item := "Grafana Cloud Alloy"
@@ -57,6 +57,14 @@ alloy:
 # Show tofu outputs (grafana_url, otlp_url, otlp_instance_id)
 output:
     {{ _op }} {{ _tofu }} output
+
+# gcx-bundled agent skills this project uses. The grafana/skills ones under
+# .claude/skills/ are maintained by hand and intentionally NOT touched here.
+gcx_skills := "create-dashboard explore-datasources"
+
+# Refresh the gcx-bundled agent skills into .claude/skills/ (re-run after a gcx upgrade)
+sync-skills:
+    gcx agent skills install {{ gcx_skills }} --dir .claude --force
 
 # Tear down the cloud policy/token
 destroy:
