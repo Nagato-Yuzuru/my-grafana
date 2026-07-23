@@ -1,0 +1,50 @@
+# No-secret checks only: 1Password is interactive (Touch ID), so anything
+# needing op run — tofu init/validate/plan — stays local (`just validate`).
+#
+# Actions are pinned to full commit SHAs (tag comments alongside); Renovate
+# maintains both the digest and the comment.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  prek:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Installs the mise.toml toolchain: tofu, just, prek.
+      - uses: jdx/mise-action@dad1bfd3df957f44999b559dd69dc1671cb4e9ea # v4.2.1
+      # alloy isn't in the mise registry — install from Grafana's apt repo so
+      # `alloy fmt` / `alloy validate` run in CI too.
+      - name: Install Grafana Alloy
+        run: |
+          sudo mkdir -p /etc/apt/keyrings
+          curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee /etc/apt/sources.list.d/grafana.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq alloy
+      - run: prek run --all-files --show-diff-on-failure
+
+  # The prek gitleaks hook scans the staged diff (a commit-time gate); this
+  # scans full history so a slip that bypassed hooks still gets caught.
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
