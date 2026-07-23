@@ -31,6 +31,14 @@ repos:
   # of truth as the Justfile recipes `fmt` / `alloy-fmt` / `alloy-validate`.
   - repo: local
     hooks:
+      # Server-side push rules need an org-owned repo, so this is the next-best
+      # gate: blocks `git add -f` slips at commit time, and CI re-runs it on the
+      # whole tree to catch anything pushed with --no-verify.
+      - id: no-generated-files
+        name: block tfstate / generated op.env / log files
+        language: fail
+        entry: 'tofu state, generated alloy/op.env, and *.log must never be committed'
+        files: '\.tfstate(\.|$)|^alloy/op\.env$|\.log$'
       - id: tofu-fmt
         name: tofu fmt
         language: system
