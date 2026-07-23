@@ -191,3 +191,15 @@ Temporary Items
 # iCloud generated files
 *.icloud
 
+#--------------------------------------------------#
+# Project: Claude Code telemetry pipeline          #
+#--------------------------------------------------#
+# Non-secret env rendered by `tofu apply` (reproducible from state).
+# config.alloy and tofu/op.env are committed; only this generated file is ignored.
+alloy/op.env
+# Machine-specific artifacts from `just alloy-svc` (launchd run): runtime log + generated plist.
+alloy/alloy.log
+alloy/alloy.launchd.plist
+# Alloy's runtime storage dir (storage.path default; created in the working dir at run time).
+data-alloy/
+
