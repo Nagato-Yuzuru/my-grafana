@@ -85,7 +85,7 @@ alloy-svc:
         <string>${alloy_bin}</string><string>run</string><string>${repo}/alloy/config.alloy</string>
       </array>
       <key>EnvironmentVariables</key>
-      <dict><key>PATH</key><string>$(dirname "$op_bin"):$(dirname "$alloy_bin"):/usr/bin:/bin</string></dict>
+      <dict><key>PATH</key><string>$(dirname "$op_bin"):$(dirname "$alloy_bin"):/usr/bin:/bin:/usr/sbin</string></dict>
       <key>WorkingDirectory</key><string>${repo}</string>
       <key>RunAtLoad</key><true/>
       <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
@@ -127,12 +127,18 @@ alloy-reload:
 output:
     {{ _op }} {{ _tofu }} output
 
-# gcx-bundled agent skills this project uses. The grafana/skills ones under
-# .claude/skills/ are maintained by hand and intentionally NOT touched here.
-gcx_skills := "create-dashboard explore-datasources"
+# gcx-bundled agent skills this project uses (valid names: `gcx agent skills list`;
+# the bundle is embedded in the gcx binary, so it shifts across gcx versions — re-check
+# after upgrades). The grafana/skills ones under .claude/skills/ are hand-maintained,
+# tracked in skills-lock.json, and intentionally NOT touched here.
+gcx_skills := "create-dashboard debug-with-grafana gcx manage-dashboards"
 
-# Refresh the gcx-bundled agent skills into .claude/skills/ (re-run after a gcx upgrade)
+# Reconcile .claude/skills/ to gcx_skills: prune gcx-managed skills no longer in the list
+# (or dropped upstream), then (re)install the desired set at the current binary's bundle.
+# `uninstall --all` touches ONLY gcx-bundled skills — the hand-maintained grafana/skills
+# ones aren't in the bundle, so they are never removed. Re-run after a gcx upgrade.
 sync-skills:
+    gcx agent skills uninstall --all --yes --dir .claude
     gcx agent skills install {{ gcx_skills }} --dir .claude --force
 
 # Tear down the cloud policy/token
