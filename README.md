@@ -29,8 +29,17 @@ Claude Code ──OTLP(grpc :4317)──▶ local Alloy ──OTLP/HTTP + Basic 
 | `claude/settings.telemetry.json` | `env` block to merge into your Claude Code settings |
 | `Justfile` | `init` / `apply` / `sync-token` / `rotate` / `alloy` / `output` / `destroy` |
 
-`mise.toml` pins OpenTofu + just for [mise](https://mise.jdx.dev) users, but nothing
+`mise.toml` pins OpenTofu + just + prek for [mise](https://mise.jdx.dev) users, but nothing
 requires mise — any `tofu`, `op`, and (per platform) `alloy` on `PATH` work.
+
+## Repo checks
+
+`just setup` (once) installs the pinned tools and wires [prek](https://github.com/j178/prek)
+into `.git/hooks`; after that every commit runs `.pre-commit-config.yaml` — hygiene checks,
+`tofu fmt`, `alloy fmt`/`validate`, `just --fmt`, and a gitleaks scan guarding the
+no-plaintext-secrets model. `just check` runs the same set against the whole tree; CI
+(`.github/workflows/ci.yaml`) repeats it on push/PR plus a full-history gitleaks pass.
+Anything needing `op run` (tofu init/validate/plan) stays local and manual by design.
 
 ## Signal scope (current: full capture)
 

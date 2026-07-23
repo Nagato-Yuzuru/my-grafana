@@ -166,7 +166,7 @@ terraform.rc
 .AppleDouble
 .LSOverride
 
-# Icon must end with two 
+# Icon must end with two
 Icon
 
 # Thumbnails
@@ -202,4 +202,3 @@ alloy/alloy.log
 alloy/alloy.launchd.plist
 # Alloy's runtime storage dir (storage.path default; created in the working dir at run time).
 data-alloy/
-

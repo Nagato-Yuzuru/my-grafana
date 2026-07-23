@@ -1,0 +1,57 @@
+# Run via prek (pinned in mise.toml): `just setup` wires the git hook,
+# `just check` runs everything against all files. CI runs the same config.
+repos:
+  # prek's Rust built-ins (offline, zero-setup; prek-only — not portable back
+  # to the Python pre-commit tool, which this repo doesn't use).
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+
+  # Guards the repo's core promise: nothing in plaintext on disk — committed
+  # files carry op:// references only, never token literals.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+
+  # Formatters/validators using the binaries the project already requires
+  # (tofu/just via mise, alloy per platform — see README). Same single source
+  # of truth as the Justfile recipes `fmt` / `alloy-fmt` / `alloy-validate`.
+  - repo: local
+    hooks:
+      - id: tofu-fmt
+        name: tofu fmt
+        language: system
+        entry: tofu -chdir=tofu fmt
+        files: ^tofu/.*\.tf$
+        pass_filenames: false
+      - id: alloy-fmt
+        name: alloy fmt
+        language: system
+        entry: alloy fmt -w alloy/config.alloy
+        files: ^alloy/config\.alloy$
+        pass_filenames: false
+      - id: alloy-validate
+        name: alloy validate
+        language: system
+        entry: alloy validate alloy/config.alloy
+        files: ^alloy/config\.alloy$
+        pass_filenames: false
+      - id: just-fmt
+        name: just --fmt
+        language: system
+        entry: just --fmt --unstable
+        files: ^Justfile$
+        pass_filenames: false

@@ -19,6 +19,15 @@ _op := "op run --env-file tofu/op.env --"
 default:
     @just --list
 
+# One-time dev setup: install pinned tools (mise), wire prek into .git/hooks
+setup:
+    mise install
+    prek install
+
+# Run every pre-commit check against the whole tree (same set CI runs)
+check:
+    prek run --all-files
+
 # tofu init — download providers + set up state encryption (needs the passphrase)
 init:
     {{ _op }} {{ _tofu }} init
