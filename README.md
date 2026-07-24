@@ -26,8 +26,8 @@ Claude Code ──OTLP(grpc :4317)──▶ local Alloy ──OTLP/HTTP + Basic 
 | Path | What |
 |---|---|
 | `tofu/` | policy + write token; renders `alloy/op.env`. Remote state on R2 (encrypted) |
-| `tofu/op.env` | **committed**: `op://` refs for tofu's secrets, stack slug + R2 keys (no secrets) |
-| `tofu/backend.tf` | **committed**: R2 remote-state backend — non-secret coordinates only |
+| `tofu/op.env` | **committed**: `op://` refs for tofu's secrets, stack slug + R2 keys/endpoint (no secrets) |
+| `tofu/backend.tf` | **committed**: R2 remote-state backend — state layout + S3-compat flags; no account identity |
 | `alloy/config.alloy` | **committed**, static Alloy config; reads coordinates via `sys.env` |
 | `alloy/op.env` | **generated** by `tofu apply` (non-secret: endpoint, instance id, token ref) |
 | `claude/settings.telemetry.json` | `env` block to merge into your Claude Code settings |
@@ -64,7 +64,8 @@ tokens, cost — no text), drop the four `OTEL_LOG_*` keys. Left off: `OTEL_LOG_
      let 1Password generate it — losing it makes the encrypted state unreadable), and
      field `username` = your stack slug.
    - **`Cloudflare R2 tofu state`** → the R2 **S3 API token**: field `AK` = Access Key ID,
-     field `SK` = Secret Access Key (both concealed). You mint the token in step 2.
+     field `SK` = Secret Access Key (both concealed), plus field `S3URL` = the account-level
+     S3 endpoint. You mint the token and read the endpoint off the dashboard in step 2.
    - `Grafana Cloud Alloy` is created for you by `just sync-token`.
 
 2. **Cloudflare R2 bucket** (holds the remote state). With `wrangler` logged in:
@@ -73,12 +74,18 @@ tokens, cost — no text), drop the four `OTEL_LOG_*` keys. Left off: `OTEL_LOG_
    ```
    Then Cloudflare dashboard → R2 → *Manage R2 API Tokens* → create a token with **Object
    Read & Write** scoped to that bucket (wrangler can't mint S3 tokens). Store the resulting
-   Access Key ID / Secret Access Key in the `Cloudflare R2 tofu state` item (`AK` / `SK`). The
-   bucket name and S3 endpoint `https://<account-id>.r2.cloudflarestorage.com` are non-secret
-   and live in `tofu/backend.tf` — adjust them there if yours differ.
+   Access Key ID / Secret Access Key in the `Cloudflare R2 tofu state` item (`AK` / `SK`), and
+   the **account-level** S3 endpoint `https://<account-id>.r2.cloudflarestorage.com` in the
+   same item's `S3URL` field. The dashboard's per-bucket *S3 API* value ends in `/<bucket>` —
+   drop that suffix, since `use_path_style` appends the bucket itself.
+
+   The endpoint lives in 1Password rather than `tofu/backend.tf` because it embeds the
+   Cloudflare account ID and this repo is public. The bucket name stays in `backend.tf`
+   (adjust it there if yours differs): the s3 backend has no env var for `bucket`, and a
+   bucket name is not a credential — without the account it identifies nothing.
 
 3. **`tofu/op.env`** already points at those items — every value is an `op://` ref (bootstrap
-   token, state passphrase, stack slug, and the R2 `AK`/`SK`), no literals. Adjust the
+   token, state passphrase, stack slug, the R2 `AK`/`SK` and endpoint), no literals. Adjust the
    vault/item names there if yours differ, and keep the Justfile's `op_vault`/`op_item`/
    `op_field` and the tofu variable `onepassword_token_ref` in sync.
 
